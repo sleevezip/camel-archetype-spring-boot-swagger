@@ -1,8 +1,8 @@
-== Camel Example Spring Boot
+== Swagger Contract First approach
+== Spring Boot with generated Camel REST DSL API Configuration
 
-This example shows how to work with a simple Apache Camel application using Spring Boot.
-
-The example generates messages using timer trigger, writes them to standard output.
+The project generates resources based on the swagger.json specification stored in resources folder
+and new resources are packeged in swager.api and swagger.model
 
 === Camel routes
 
