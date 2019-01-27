@@ -1,0 +1,230 @@
+apiVersion: v1
+kind: Template
+labels:
+  template: spring-app-template-with-dev-pipeline
+metadata:
+  labels:
+    application: ${APPLICATION_NAME}
+    app: ${APPLICATION}
+  name: ${APPLICATION_NAME}
+
+objects:
+
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    labels:
+      application: ${APPLICATION_NAME}
+    name: ${APPLICATION_NAME}
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      description: The web server's http port.
+    labels:
+      application: ${APPLICATION_NAME}
+    name: ${APPLICATION_NAME}
+  spec:
+    ports:
+    - port: 8080
+      targetPort: 8080
+    selector:
+      deploymentConfig: ${APPLICATION_NAME}
+
+- apiVersion: v1
+  id: ${APPLICATION_NAME}-http
+  kind: Route
+  metadata:
+    annotations:
+      description: Route for application's http service.
+    labels:
+      application: ${APPLICATION_NAME}
+    name: ${APPLICATION_NAME}
+  spec:
+    to:
+      name: ${APPLICATION_NAME}
+
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      application: ${APPLICATION_NAME}
+    name: ${APPLICATION_NAME}
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: ${APPLICATION_NAME}:latest
+    source:
+      git:
+        ref: ${SOURCE_REF}
+        uri: ${SOURCE_URL}
+      type: Git
+    strategy:
+      sourceStrategy:
+        forcePull: true
+        from:
+          kind: ImageStreamTag
+          name: redhat-openjdk18-openshift:1.4
+          namespace: openshift
+      type: Source
+    triggers:
+    - generic:
+        secret: kJZLvfQr3hZg
+      type: Generic
+
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    labels:
+      application: ${APPLICATION_NAME}
+    name: ${APPLICATION_NAME}
+  spec:
+    replicas: 1
+    selector:
+      deploymentConfig: ${APPLICATION_NAME}
+    strategy:
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          application: ${APPLICATION_NAME}
+          deploymentConfig: ${APPLICATION_NAME}
+        name: ${APPLICATION_NAME}
+      spec:
+        containers:
+        - env:
+          - name: SERVER_PORT
+            value: "8080"
+          - name: SPRING_PROFILES_ACTIVE
+            value: ${SPRING_PROFILES}
+          image: ${APPLICATION_NAME}
+          imagePullPolicy: Always
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /actuator/health
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 45
+            periodSeconds: 45
+            successThreshold: 1
+            timeoutSeconds: 1
+          name: ${APPLICATION_NAME}
+          ports:
+          - containerPort: 8080
+            name: http
+            protocol: TCP
+          - containerPort: 8888
+            name: ping
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /actuator/info
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 1
+        terminationGracePeriodSeconds: 60
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - ${APPLICATION_NAME}
+        from:
+          kind: ImageStream
+          name: ${APPLICATION_NAME}
+      type: ImageChange
+    - type: ConfigChange
+
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    annotations:
+      pipeline.alpha.openshift.io/uses: '[{"name": "jenkins", "namespace": "", "kind": "DeploymentConfig"}]'
+    labels:
+      name: development-pipeline
+      application: ${APPLICATION_NAME}
+    name: ${APPLICATION_NAME}-pipeline
+  spec:
+    runPolicy: Serial
+    source:
+      git:
+        uri: "${SOURCE_URL}"
+      type: Git
+    strategy:
+      jenkinsPipelineStrategy:
+        jenkinsfile: |-
+          node('maven') {
+
+             stage ('Clone') {
+               git branch: "${SOURCE_REF}", url: "${SOURCE_URL}"
+             }
+
+             stage('Build') {
+                    openshiftBuild(buildConfig: "${APPLICATION_NAME}", showBuildLogs: 'true')
+                  }
+
+             stage('Deploy') {
+                    openshiftDeploy(deploymentConfig: "${APPLICATION_NAME}")
+                  }
+
+             stage ('Promote') {
+               timeout(time:15, unit:'MINUTES') {
+                  input message: "Promote ${APPLICATION_NAME} to STAGE?", ok: "Promote"
+               }
+
+               def v = version()
+               // tag for stage
+               sh "oc tag ${DEV_NAMESPACE}/${APPLICATION_NAME}:latest ${STAGE_NAMESPACE}/${APPLICATION_NAME}:${v}"
+               // clean up. keep the imagestream
+               // sh "oc delete bc,dc,svc,route -l app=${APPLICATION_NAME} -n ${STAGE_NAMESPACE}"
+               // deploy stage image
+               sh "oc new-app ${APPLICATION_NAME}:${v} -n ${STAGE_NAMESPACE}"
+               sh "oc expose svc/${APPLICATION_NAME} -n ${STAGE_NAMESPACE}"
+             }
+          }
+
+          def version() {
+            def matcher = readFile('pom.xml') =~ '<version>(.+)</version>'
+            matcher ? matcher[0][1] : null
+          }
+      type: JenkinsPipeline
+
+parameters:
+- description: The name for the service.
+  name: APPLICATION_NAME
+  required: true
+  value: camelREST
+- description: The name for the application.
+  name: APPLICATION
+  required: true
+  value: camelREST
+- description: Active spring profile.
+  name: SPRING_PROFILES
+  required: true
+  value: openshift
+- description: GitLab source URI for application
+  name: SOURCE_URL
+  required: true
+  value: https://github.com/camelREST.git
+- description: Git branch/tag reference
+  name: SOURCE_REF
+  value: master
+- description: Development project namespace on OpenShift
+  name: DEV_NAMESPACE
+  value: dev
+- description: Stage project namespace on OpenShift
+  name: STAGE_NAMESPACE
+  value: test
