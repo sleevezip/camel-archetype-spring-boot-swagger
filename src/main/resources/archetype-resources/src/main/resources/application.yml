@@ -5,59 +5,55 @@ spring:
 server:
   port: 8080
 
+# Pretty-print JSON responses
+spring.jackson.serialization.indent_output: true
+
 camel:
   springboot:
     # The Camel context name
-    name: camelREST
-    main-run-controller: true
-    health.indicator.enabled: true
+    name: workflow
   # to reconfigure the camel servlet context-path mapping to use /api/* instead of /camel/*
+  # needs to be in alignment with basePath in swagger definition
   component:
-    servlet.mapping.context-path: /api/*
+    servlet:
+      mapping:
+        context-path: /*
   # rest can also be configured here instead in the CamelRouter class
   # rest DSL configuration
   rest:
     component: servlet
     binding-mode: json
     enable-cors: true
-    port: 8080
-    context-path: /api
-  # rest DSL api-doc configuration
-    api-context-path: /api-doc
   # jackson properties
   dataformat:
     json-jackson:
       object-mapper: jacksonObjectMapper
 
-# what to say
-greeting: Hello World
-
-# how often to trigger the timer
-timer.period: 2000
-
+# all access to actuator endpoints without security
 management:
+  server:
+    port: 8081
   security:
     enabled: false
   # expose actuator endpoint via HTTP
   endpoints:
-    web.exposure.include: info,health,camelroutes
+    web:
+      exposure:
+#        include: info,health,camelroutes
+        include: '*'
     # show verbose health details (/actuator/info) so you can see Camel information also
-    health.show-details: always
+  endpoint:
+    health:
+      show-details: always
     # allow to obtain basic information about Camel routes (read only mode)
     camelroutes:
       enabled: true
       read-only: true
-    # to turn off Camel info in (/actuator/info)
-    #info.camel.enabled=false
 
 # Logging
 logging:
   config: classpath:logback.xml
-  level:
-    org.springframework: INFO
-    apache.camel.spring.boot: INFO
-    org.apache.camel.impl: DEBUG
-
+  level.org.springframework.web: DEBUG
 ---
 
 spring:
