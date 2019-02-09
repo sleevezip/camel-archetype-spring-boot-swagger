@@ -37,6 +37,14 @@ To show detailed information for a specific route
 curl -XGET -s http://localhost:8081/actuator/camelroutes/{id}/detail
 ----
 
+=== Swagger UI
+
+To view graphical representation of your API definition
+
+----
+curl -XGET -s http://localhost:8080
+----
+
 === More information
 
 You can find more information about Apache Camel at the website: http://camel.apache.org/
