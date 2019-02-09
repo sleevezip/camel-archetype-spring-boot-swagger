@@ -11,7 +11,7 @@ spring.jackson.serialization.indent_output: true
 camel:
   springboot:
     # The Camel context name
-    name: workflow
+    name: ${artifactId}
   # to reconfigure the camel servlet context-path mapping to use /api/* instead of /camel/*
   # needs to be in alignment with basePath in swagger definition
   component:

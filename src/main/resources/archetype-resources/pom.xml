@@ -63,13 +63,19 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <!-- Spring Boot <> Camel integration specifies jetty as go to. -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-undertow</artifactId>
+            <artifactId>spring-boot-starter-jetty</artifactId>
         </dependency>
+        <!-- Metrics -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
 
         <!-- Camel Spring Boot -->

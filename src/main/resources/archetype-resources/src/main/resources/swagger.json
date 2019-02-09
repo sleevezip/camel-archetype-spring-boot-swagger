@@ -5,8 +5,8 @@
     "version": "1.0",
     "title": "API Activation and Configuration"
   },
-  "host": "env-0693795.jelastic.servint.net",
-  "basePath": "/DSEntityProvisioning/api/ActivationAndConfiguration/v2",
+  "host": "localhost",
+  "basePath": "/ActivationAndConfiguration/v2",
   "schemes": [
     "http"
   ],

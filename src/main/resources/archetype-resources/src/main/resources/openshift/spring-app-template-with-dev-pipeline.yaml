@@ -206,11 +206,11 @@ parameters:
 - description: The name for the service.
   name: APPLICATION_NAME
   required: true
-  value: camelREST
+  value: ${artifactId}
 - description: The name for the application.
   name: APPLICATION
   required: true
-  value: camelREST
+  value: CamelREST
 - description: Active spring profile.
   name: SPRING_PROFILES
   required: true
