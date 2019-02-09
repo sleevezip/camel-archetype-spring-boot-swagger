@@ -4,16 +4,12 @@
 The project generates resources based on the swagger.json specification stored in resources folder
 and new resources are packeged in swager.api and swagger.model
 
-=== Camel routes
+=== How to generate artifacts
 
-The Camel route is located in the `MyCamelRouter` class. In this class the route
-starts from a timer, that triggers every 2nd second and calls a Spring Bean `MyBean`
-which returns a message, that is routed to a stream endpoint which writes to standard output.
+After placing your api definition (swagger.json) file into 'resources' folder
+You can run following comand to generate the artifacts
 
-=== Using Camel components
-
-Apache Camel provides 200+ components which you can use to integrate and route messages between many systems
-and data formats. To use any of these Camel components, add the component as a dependency to your project.
+    mvn clean compile
 
 === How to run
 
@@ -21,20 +17,25 @@ You can run this example using
 
     mvn spring-boot:run
 
+=== To get info about application health
+
+----
+curl -XGET -s http://localhost:8081/actuator/health
+----
+
 === To get info about the routes
 
 To show a summary of all the routes
 
 ----
-curl -XGET -s http://localhost:8080/camelroutes
+curl -XGET -s http://localhost:8081/actuator/camelroutes
 ----
 
 To show detailed information for a specific route
 
 ----
-curl -XGET -s http://localhost:8080/camelroutes/{id}/detail
+curl -XGET -s http://localhost:8081/actuator/camelroutes/{id}/detail
 ----
-
 
 === More information
 
